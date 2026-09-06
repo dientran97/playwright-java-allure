@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!-- Same folder, second xml file: run it with -suiteXmlFolder=Demo -suiteXmlFile=smoke.xml
+     The report is then published as reports/smoke.html -->
+<suite name="SP0308_3.2.1.1_Demo smoke" verbose="1">
+
+    <parameter name="browser" value="chrome"/>
+    <parameter name="isHeadless" value="true"/>
+
+    <test name="3.2.1.1_TC001_Login with valid credentials">
+        <classes>
+            <class name="tests.demo.TC001_login_with_valid_credentials"/>
+        </classes>
+    </test>
+</suite>

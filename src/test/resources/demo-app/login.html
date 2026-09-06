@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Demo Shop - Login</title>
+    <style>
+        body { font-family: system-ui, sans-serif; margin: 0; background: #f4f6f8; color: #1c2733; }
+        .card { width: 340px; margin: 90px auto; background: #fff; padding: 28px 32px 32px;
+                border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.08); }
+        h1 { font-size: 20px; margin: 0 0 20px; }
+        label { display: block; font-size: 13px; margin: 14px 0 4px; color: #556; }
+        input { width: 100%; padding: 9px 10px; box-sizing: border-box; border: 1px solid #cbd5e0;
+                border-radius: 6px; font-size: 14px; }
+        button { margin-top: 22px; width: 100%; padding: 10px; border: 0; border-radius: 6px;
+                 background: #2563eb; color: #fff; font-size: 15px; cursor: pointer; }
+        #error { display: none; margin-top: 16px; padding: 9px 10px; border-radius: 6px;
+                 background: #fee2e2; color: #991b1b; font-size: 13px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1>Demo Shop</h1>
+    <form id="loginForm" autocomplete="off">
+        <label for="username">User name</label>
+        <input id="username" name="username" type="text"/>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password"/>
+        <button id="loginbtn" type="submit">Login</button>
+    </form>
+    <div id="error">Invalid user name or password</div>
+</div>
+<script>
+    document.getElementById('loginForm').addEventListener('submit', function (event) {
+        event.preventDefault();
+        var user = document.getElementById('username').value;
+        var password = document.getElementById('password').value;
+        if (user === 'demo' && password === 'demo123') {
+            window.location.href = 'home.html?user=' + encodeURIComponent(user);
+        } else {
+            document.getElementById('error').style.display = 'block';
+        }
+    });
+</script>
+</body>
+</html>

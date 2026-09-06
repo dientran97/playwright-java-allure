@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!--
+    <suite name> follows <projectID>_<URS>_<short description>.
+    It is the name shown at the first level of the Allure "Suites" page and the name of the
+    screenshots/ and downloads/ sub folder of every test case of the suite.
+
+    The two parameters below are the fallback browser settings of the suite. They are used when
+    the run does not pass -Dbrowser / -Dheadless (i.e. an IDE run on this file), and they are
+    overridden by the command line otherwise.
+-->
+<suite name="SP0308_3.2.1.1_Demo application end to end" verbose="1">
+
+    <parameter name="browser" value="chrome"/>
+    <parameter name="isHeadless" value="true"/>
+
+    <!-- <test name> follows <URS>_<testcase ID>_<short description> and is the name of the
+         test case in the Allure report. One <test> calls exactly one java class. -->
+    <test name="3.2.1.1_TC001_Login with valid credentials">
+        <classes>
+            <class name="tests.demo.TC001_login_with_valid_credentials"/>
+        </classes>
+    </test>
+
+    <test name="3.2.1.2_TC002_Login with invalid credentials">
+        <classes>
+            <class name="tests.demo.TC002_login_with_invalid_credentials"/>
+        </classes>
+    </test>
+
+    <test name="3.2.1.3_3.2.1.4_TC003_Download the report and read the documentation">
+        <classes>
+            <class name="tests.demo.TC003_download_report_and_read_documentation"/>
+        </classes>
+    </test>
+</suite>

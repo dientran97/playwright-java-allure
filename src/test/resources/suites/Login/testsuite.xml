@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+
+<!-- Suite running against the real application declared by the active environment file
+     (environments/TEST.properties by default). -->
+<suite name="SP0308_3.2.1.1_Login functionality" verbose="1">
+
+    <parameter name="browser" value="chrome"/>
+    <parameter name="isHeadless" value="false"/>
+
+    <test name="3.2.1.1_TC001_The login page is displayed">
+        <classes>
+            <class name="tests.login.TC001_login_page_is_displayed"/>
+        </classes>
+    </test>
+
+    <test name="3.2.1.2_TC002_Login with invalid credentials">
+        <classes>
+            <class name="tests.login.TC002_login_with_invalid_credentials"/>
+        </classes>
+    </test>
+</suite>
