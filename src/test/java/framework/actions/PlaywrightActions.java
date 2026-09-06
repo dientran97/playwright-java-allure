@@ -734,12 +734,15 @@ public final class PlaywrightActions {
         try {
             return action.get();
         } catch (RuntimeException error) {
-            Log.fail("{} -> FAILED: {}", description, error.getMessage());
-            Allure.addAttachment("Error - " + description, "text/plain", stackTraceOf(error), ".txt");
-            ScreenshotManager.captureFailure(error);
-            throw error instanceof FrameworkException
+            // the failure is photographed against the exception that really propagates, so the
+            // enclosing keywords and the TestNG listener recognise it and do not photograph it again
+            final FrameworkException failure = error instanceof FrameworkException
                     ? (FrameworkException) error
                     : new FrameworkException(description + " -> FAILED: " + error.getMessage(), error);
+            Log.fail("{} -> FAILED: {}", description, error.getMessage());
+            Allure.addAttachment("Error - " + description, "text/plain", stackTraceOf(error), ".txt");
+            ScreenshotManager.captureFailure(failure);
+            throw failure;
         }
     }
 
