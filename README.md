@@ -134,7 +134,13 @@ screenshots/SP0308_3.2.1.1_Login functionality/TC001/3.2.1.1_TC001_Login page_SS
 ```
 
 The index is a three digit counter that **restarts at 001 for every test case**. The same image is
-attached to the Allure report.
+attached to the Allure report **under that very same file name**, so a picture seen in the report is
+found on disk without opening anything:
+
+```
+3.2.1.1_TC001_Home page after login_SS002.png     <- attachment title in the report
+                                                     = file name under screenshots/
+```
 
 Two keywords produce them, and both are available on every page object as well:
 
