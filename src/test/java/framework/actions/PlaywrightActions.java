@@ -16,6 +16,8 @@ import framework.logging.Log;
 import framework.report.DownloadManager;
 import framework.report.ScreenshotManager;
 import io.qameta.allure.Allure;
+import io.qameta.allure.Param;
+import io.qameta.allure.model.Parameter;
 import io.qameta.allure.Step;
 
 import java.io.PrintWriter;
@@ -59,7 +61,8 @@ public final class PlaywrightActions {
      * @return the page that became active
      */
     @Step("Open the browser and navigate to {url}")
-    public static Page openBrowserAndNavigate(final String url, final String username, final String password) {
+    public static Page openBrowserAndNavigate(final String url, final String username,
+                                              @Param(mode = Parameter.Mode.MASKED) final String password) {
         return evaluate("Open the browser and navigate to " + url, () -> {
             BrowserManager.open(PageManager.DEFAULT_ALIAS, username, password);
             final Page page = PageManager.page();
@@ -104,7 +107,8 @@ public final class PlaywrightActions {
      */
     @Step("Open a new browser '{alias}' and navigate to {url}")
     public static Page openNewBrowserAndNavigate(final String alias, final String url,
-                                                 final String username, final String password) {
+                                                 final String username,
+                                                 @Param(mode = Parameter.Mode.MASKED) final String password) {
         return evaluate("Open a new browser '" + alias + "' and navigate to " + url, () -> {
             BrowserManager.open(alias, username, password);
             final Page page = PageManager.page();
@@ -207,7 +211,8 @@ public final class PlaywrightActions {
      * @param secret  the value to type, typically a password
      */
     @Step("Type the secret value into {locator.name}")
-    public static void typeSecret(final NameLocator locator, final String secret) {
+    public static void typeSecret(final NameLocator locator,
+                                  @Param(mode = Parameter.Mode.MASKED) final String secret) {
         perform("Type the secret value into " + locator.getName(), () -> locator.resolve().fill(secret));
     }
 

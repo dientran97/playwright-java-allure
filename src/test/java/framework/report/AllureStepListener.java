@@ -6,6 +6,7 @@ import framework.logging.StepTracker;
 import io.qameta.allure.listener.StepLifecycleListener;
 import io.qameta.allure.listener.TestLifecycleListener;
 import io.qameta.allure.model.Label;
+import io.qameta.allure.model.Parameter;
 import io.qameta.allure.model.Status;
 import io.qameta.allure.model.StepResult;
 import io.qameta.allure.model.TestResult;
@@ -26,6 +27,9 @@ import java.util.List;
  */
 public class AllureStepListener implements StepLifecycleListener, TestLifecycleListener {
 
+    /** Value written instead of a secret, see {@link #maskSecrets(List)}. */
+    private static final String MASK = "****";
+
     private static final String PARENT_SUITE = "parentSuite";
     private static final String SUITE = "suite";
     private static final String SUB_SUITE = "subSuite";
@@ -42,6 +46,7 @@ public class AllureStepListener implements StepLifecycleListener, TestLifecycleL
         if (meta == null || StepNameFormatter.isFormatted(result.getName())) {
             return;
         }
+        maskSecrets(result.getParameters());
         final LogLevel level = LogLevel.max(meta.getLevel(), statusLevel);
         if (level.getRank() >= LogLevel.ERROR.getRank() && result.getStatus() == Status.PASSED) {
             // a soft assertion that failed does not throw, the step must still be red
@@ -64,7 +69,29 @@ public class AllureStepListener implements StepLifecycleListener, TestLifecycleL
 
     @Override
     public void beforeTestStop(final TestResult result) {
+        maskSecrets(result.getParameters());
         StepTracker.clear();
+    }
+
+    /**
+     * Overwrites the value of every parameter a keyword declared as a secret with
+     * {@link #MASK}.
+     *
+     * <p>Annotating a parameter with {@code @Param(mode = MASKED)} only tells the Allure user
+     * interface to hide it: the real value is still written to the json results and therefore
+     * embedded in the published html report. Replacing the value here is what actually keeps a
+     * password out of the report file.</p>
+     *
+     * @param parameters the parameters of a step or of a test case, may be {@code null}
+     */
+    private void maskSecrets(final List<Parameter> parameters) {
+        if (parameters == null) {
+            return;
+        }
+        parameters.stream()
+                .filter(parameter -> Parameter.Mode.MASKED == parameter.getMode()
+                        || Boolean.TRUE.equals(parameter.getExcluded()))
+                .forEach(parameter -> parameter.setValue(MASK));
     }
 
     /**
