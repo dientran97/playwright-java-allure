@@ -114,6 +114,20 @@ public final class ScreenshotManager {
     }
 
     /**
+     * Declares a failure as already photographed, so it does not produce a second picture.
+     *
+     * <p>Used for the error {@code SoftAssertions.assertAll()} builds: it aggregates failures that
+     * were each photographed when they happened, so the aggregate itself needs no picture.</p>
+     *
+     * @param cause the failure to register, ignored when {@code null}
+     */
+    public static void markAlreadyCaptured(final Throwable cause) {
+        if (cause != null) {
+            ALREADY_CAPTURED.get().add(cause);
+        }
+    }
+
+    /**
      * Forgets the failures already photographed. Called between two test cases.
      */
     public static void resetFailureTracking() {

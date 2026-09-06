@@ -1,6 +1,7 @@
 package framework.assertions;
 
 import framework.logging.Log;
+import framework.report.ScreenshotManager;
 import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
 
@@ -99,6 +100,7 @@ public final class SoftAssertions extends AbstractAssertions {
         final Optional<AssertionError> combined = combine();
         failures.clear();
         if (combined.isPresent()) {
+            Log.fail("{}", combined.get().getMessage());
             Allure.addAttachment("Soft assertion failures", "text/plain",
                     combined.get().getMessage(), ".txt");
             throw combined.get();
@@ -117,7 +119,10 @@ public final class SoftAssertions extends AbstractAssertions {
                 message.append(System.lineSeparator())
                         .append(index++).append(") ").append(failure.getMessage());
             }
-            return Optional.of(new AssertionError(message.toString()));
+            final AssertionError combined = new AssertionError(message.toString());
+            // every failure it aggregates was photographed when it happened
+            ScreenshotManager.markAlreadyCaptured(combined);
+            return Optional.of(combined);
         }
     }
 }
