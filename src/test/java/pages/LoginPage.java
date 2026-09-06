@@ -1,62 +1,105 @@
 package pages;
 
-import com.microsoft.playwright.Locator;
-import com.microsoft.playwright.Page;
+import framework.actions.PlaywrightActions;
+import framework.config.UserConfig;
+import framework.locator.NameLocator;
 import io.qameta.allure.Step;
-import utils.WebActions;
 
+/**
+ * Login page of the demo application used by the {@code Login} suite.
+ *
+ * <p>It shows the shape every page object of the project follows: the elements are declared once
+ * as {@link NameLocator} constants and the keywords below are the only vocabulary a test case
+ * uses.</p>
+ */
 public class LoginPage extends BasePage {
-    public final Locator USERNAME_EDITBOX;
-    public final Locator PASSWORD_EDITBOX;
-    private final Locator LOGIN_BUTTON;
-    private final Locator REGISTER_LINK;
-    private final Locator USER;
-    public final Locator ERROR_MESSAGE;
 
-    public LoginPage(BasePage page) {
-        super(page.PAGE, page.TC_NAME);
-        this.USERNAME_EDITBOX = page.PAGE.locator("//input[@formcontrolname='username']");
-        this.PASSWORD_EDITBOX = page.PAGE.locator("//input[@formcontrolname='password']");
-        this.LOGIN_BUTTON = page.PAGE.locator("//button/span[text()='Login']");
-        this.REGISTER_LINK = page.PAGE.locator("//button/span[text()='Register']");
-        this.USER = page.PAGE.locator("//*[@aria-haspopup='menu']//span[contains(@class, 'label')]");
-        this.ERROR_MESSAGE = page.PAGE.locator("//mat-error");
+    /** User name field of the login form. */
+    public static final NameLocator USERNAME_FIELD =
+            new NameLocator("Username field", "//input[@formcontrolname='username']");
+    /** Password field of the login form. */
+    public static final NameLocator PASSWORD_FIELD =
+            new NameLocator("Password field", "//input[@formcontrolname='password']");
+    /** Button that submits the login form. */
+    public static final NameLocator LOGIN_BUTTON =
+            new NameLocator("Login button", "//button[.//span[normalize-space()='Login']]");
+    /** Link that opens the registration form. */
+    public static final NameLocator REGISTER_LINK =
+            new NameLocator("Register link", "//button[.//span[normalize-space()='Register']]");
+    /** Validation message shown under an invalid field. */
+    public static final NameLocator ERROR_MESSAGE =
+            new NameLocator("Error message", "//mat-error");
+    /** Name of the logged in user, shown in the toolbar. */
+    public static final NameLocator USER_MENU =
+            new NameLocator("User menu", "//*[@aria-haspopup='menu']//span[contains(@class,'label')]");
+
+    @Override
+    protected NameLocator pageIdentifier() {
+        return LOGIN_BUTTON;
     }
 
-    @Step("User navigates to LoginPage")
-    public void navigateToUrl() {
-        super.navigateToUrl("https://bookcart.azurewebsites.net/login");
+    /**
+     * Types a user name in the login form.
+     *
+     * @param username the user name to type
+     * @return this page object, so calls can be chained
+     */
+    @Step("Enter the user name '{username}'")
+    public LoginPage enterUsername(final String username) {
+        PlaywrightActions.type(USERNAME_FIELD, username);
+        return this;
     }
 
-    @Step("User enters {username}")
-    public void enterUsername(String username) {
-        USERNAME_EDITBOX.fill(username);
+    /**
+     * Types a password in the login form. The value never reaches the log nor the report.
+     *
+     * @param password the password to type
+     * @return this page object, so calls can be chained
+     */
+    @Step("Enter the password")
+    public LoginPage enterPassword(final String password) {
+        PlaywrightActions.typeSecret(PASSWORD_FIELD, password);
+        return this;
     }
 
-    @Step("User enters {password}")
-    public void enterPassword(String password) {
-        PASSWORD_EDITBOX.fill(password);
+    /**
+     * Submits the login form.
+     */
+    @Step("Submit the login form")
+    public void submit() {
+        PlaywrightActions.click(LOGIN_BUTTON);
+        PlaywrightActions.waitForPageLoad();
     }
 
-    @Step("User click to login button")
-    public void clickLogin() {
-        LOGIN_BUTTON.click();
+    /**
+     * Fills the login form with the credentials of a user file and submits it.
+     *
+     * @param user the user to log in with, i.e. {@code UserConfig.current()}
+     */
+    @Step("Log in as the user '{user.userKey}'")
+    public void loginAs(final UserConfig user) {
+        enterUsername(user.getUsername());
+        enterPassword(user.getPassword());
+        submit();
     }
 
-    public void clickRegister() {
-        REGISTER_LINK.click();
+    /**
+     * Reads the validation message displayed by the form.
+     *
+     * @return the text of the message
+     */
+    @Step("Read the login error message")
+    public String getErrorMessage() {
+        return PlaywrightActions.getText(ERROR_MESSAGE);
     }
 
-    public void clickOnIcon(String iconName) {
-        this.PAGE.getByText(iconName, new Page.GetByTextOptions().setExact(true)).click();  // Clicks on the Exact text
-    }
-
-    @Step("Verify Profile Page")
-    public boolean verifyProfilePage() {
-        return WebActions.waitUntilElementDisplayed(this.USER, 5);
-    }
-
-    public String getErrorMessage(){
-        return this.ERROR_MESSAGE.innerText();
+    /**
+     * Tells whether the application accepted the credentials.
+     *
+     * @return {@code true} when the toolbar shows the name of a logged in user
+     */
+    @Step("Is the user logged in?")
+    public boolean isUserLoggedIn() {
+        return PlaywrightActions.isDisplayedWithin(USER_MENU, 5);
     }
 }

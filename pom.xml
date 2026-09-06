@@ -5,19 +5,56 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.example</groupId>
-    <artifactId>playwright-java-cucumber</artifactId>
+    <artifactId>playwright-java-allure</artifactId>
     <version>1.0-SNAPSHOT</version>
+    <name>Playwright Java TestNG Allure Framework</name>
 
     <properties>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
         <java.version>11</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.version>3.8.1</maven.compiler.version>
-        <maven.surefire.version>2.22.2</maven.surefire.version>
-        <allure.version>2.24.0</allure.version>
-        <aspectj.version>1.9.20.1</aspectj.version>
+
+        <!-- ==== Library versions ==== -->
+        <playwright.version>1.56.0</playwright.version>
+        <testng.version>7.10.2</testng.version>
+        <allure.version>2.29.0</allure.version>
+        <aspectj.version>1.9.22.1</aspectj.version>
         <slf4j.version>2.0.16</slf4j.version>
+
+        <!-- ==== Plugin versions ==== -->
+        <maven.compiler.plugin.version>3.13.0</maven.compiler.plugin.version>
+        <maven.surefire.version>3.5.2</maven.surefire.version>
+        <maven.failsafe.version>3.5.2</maven.failsafe.version>
+        <maven.antrun.version>3.1.0</maven.antrun.version>
+        <allure.maven.version>2.18.0</allure.maven.version>
+
+        <!-- ==============================================================
+             RUNTIME SWITCHES (override from the command line with -D...)
+
+               -Denv              TEST | UAT | DEV | LOCAL  (usually set by -P<profile>)
+               -Duser             name of the file under src/test/resources/users
+               -DsuiteXmlFolder   folder under src/test/resources/suites
+               -DsuiteXmlFile     TestNG xml file inside that folder
+               -Dbrowser          chrome | chromium | edge | firefox | webkit
+               -Dheadless         true | false
+
+             `browser` and `headless` are intentionally EMPTY by default so
+             that, when they are not passed on the command line, the values
+             declared in the TestNG xml (<parameter name="browser"/>,
+             <parameter name="isHeadless"/>) and then in the environment
+             .properties file are used instead.
+             ============================================================== -->
+        <env>TEST</env>
+        <user>User1</user>
+        <browser></browser>
+        <headless></headless>
+        <suiteXmlFolder>Login</suiteXmlFolder>
+        <suiteXmlFile>testsuite.xml</suiteXmlFile>
+
+        <suites.root>${project.basedir}/src/test/resources/suites</suites.root>
+        <reports.dir>${project.basedir}/reports</reports.dir>
+        <screenshots.dir>${project.basedir}/screenshots</screenshots.dir>
+        <downloads.dir>${project.basedir}/downloads</downloads.dir>
+        <allure.results.dir>${project.build.directory}/allure-results</allure.results.dir>
     </properties>
 
     <dependencyManagement>
@@ -31,29 +68,25 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
     <dependencies>
-        <!-- https://mvnrepository.com/artifact/com.microsoft.playwright/playwright -->
         <dependency>
             <groupId>com.microsoft.playwright</groupId>
             <artifactId>playwright</artifactId>
-            <version>1.31.0</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/org.apache.poi/poi -->
-        <dependency>
-            <groupId>org.apache.poi</groupId>
-            <artifactId>poi</artifactId>
-            <version>5.3.0</version>
+            <version>${playwright.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>7.7.0</version>
-            <scope>test</scope>
+            <version>${testng.version}</version>
         </dependency>
         <dependency>
             <groupId>io.qameta.allure</groupId>
             <artifactId>allure-testng</artifactId>
-            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-java-commons</artifactId>
         </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
@@ -66,55 +99,159 @@
             <version>${slf4j.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.30</version>
-            <scope>provided</scope>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>${aspectj.version}</version>
         </dependency>
     </dependencies>
 
     <build>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>${maven.compiler.version}</version>
+                <version>${maven.compiler.plugin.version}</version>
                 <configuration>
+                    <release>${java.version}</release>
                     <encoding>UTF-8</encoding>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <!-- keeps parameter names so Allure can resolve {param} in @Step -->
+                    <parameters>true</parameters>
                 </configuration>
             </plugin>
+
+            <!-- Surefire is disabled on purpose: the UI suites are driven by
+                 Failsafe so that the Allure report is still produced when a
+                 test fails (see the phase binding below). -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${maven.surefire.version}</version>
                 <configuration>
-                    <systemPropertyVariables>
-                        <allure.results.directory>${project.build.directory}/allure-results</allure.results.directory>
-                    </systemPropertyVariables>
-                    <skipTests>false</skipTests>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+
+            <!-- integration-test phase: run the TestNG suite -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>${maven.failsafe.version}</version>
+                <configuration>
+                    <suiteXmlFiles>
+                        <suiteXmlFile>${suites.root}/${suiteXmlFolder}/${suiteXmlFile}</suiteXmlFile>
+                    </suiteXmlFiles>
                     <argLine>
                         -javaagent:"${settings.localRepository}/org/aspectj/aspectjweaver/${aspectj.version}/aspectjweaver-${aspectj.version}.jar"
                     </argLine>
+                    <systemPropertyVariables>
+                        <env>${env}</env>
+                        <user>${user}</user>
+                        <browser>${browser}</browser>
+                        <headless>${headless}</headless>
+                        <suiteXmlFolder>${suiteXmlFolder}</suiteXmlFolder>
+                        <suiteXmlFile>${suiteXmlFile}</suiteXmlFile>
+                        <project.base.dir>${project.basedir}</project.base.dir>
+                        <reports.dir>${reports.dir}</reports.dir>
+                        <screenshots.dir>${screenshots.dir}</screenshots.dir>
+                        <downloads.dir>${downloads.dir}</downloads.dir>
+                        <allure.results.directory>${allure.results.dir}</allure.results.directory>
+                    </systemPropertyVariables>
                 </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.aspectj</groupId>
-                        <artifactId>aspectjweaver</artifactId>
-                        <version>${aspectj.version}</version>
-                    </dependency>
-                </dependencies>
+                <executions>
+                    <execution>
+                        <id>run-ui-suite</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <!-- fails the build (after the report has been built) -->
+                        <id>verify-ui-suite</id>
+                        <goals>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
+
+            <!-- post-integration-test phase: build the single file Allure report -->
             <plugin>
                 <groupId>io.qameta.allure</groupId>
                 <artifactId>allure-maven</artifactId>
-                <version>2.14.0</version> <!-- Use the latest version -->
+                <version>${allure.maven.version}</version>
                 <configuration>
                     <singleFile>true</singleFile>
+                    <reportVersion>${allure.version}</reportVersion>
+                    <resultsDirectory>${allure.results.dir}</resultsDirectory>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>allure-single-file-report</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- post-integration-test phase: publish it as /reports/<suiteXmlFile>.html -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>${maven.antrun.version}</version>
+                <executions>
+                    <execution>
+                        <id>publish-allure-report</id>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <basename property="report.name" file="${suiteXmlFile}" suffix=".xml"/>
+                                <mkdir dir="${reports.dir}"/>
+                                <copy file="${project.build.directory}/site/allure-maven-plugin/index.html"
+                                      tofile="${reports.dir}/${report.name}.html"
+                                      overwrite="true"
+                                      failonerror="false"/>
+                                <echo message="Allure report published to ${reports.dir}/${report.name}.html"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
 
+    <profiles>
+        <profile>
+            <id>TEST</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <env>TEST</env>
+            </properties>
+        </profile>
+        <profile>
+            <id>UAT</id>
+            <properties>
+                <env>UAT</env>
+            </properties>
+        </profile>
+        <profile>
+            <id>DEV</id>
+            <properties>
+                <env>DEV</env>
+            </properties>
+        </profile>
+        <profile>
+            <id>LOCAL</id>
+            <properties>
+                <env>LOCAL</env>
+            </properties>
+        </profile>
+    </profiles>
 </project>
