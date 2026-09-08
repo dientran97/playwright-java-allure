@@ -86,10 +86,11 @@ public final class Log {
     }
 
     /**
-     * Writes a message on the console and adds it to the Allure report as a step of its own,
-     * formatted exactly like every other step.
+     * Writes a message on the console and adds it to the Allure report as a line nested inside the
+     * step that is running, formatted exactly like every other step. The enclosing step takes the
+     * level too, so a step whose inner line reads {@code FAIL} is itself rendered as failed.
      *
-     * @param level   severity shown in the step name
+     * @param level   severity shown in the line and applied to the enclosing step
      * @param message message, already formatted
      */
     public static void step(final LogLevel level, final String message) {
@@ -111,5 +112,7 @@ public final class Log {
         final Status status = level.getRank() >= LogLevel.ERROR.getRank() ? Status.FAILED : Status.PASSED;
         StepTracker.setPendingLevel(level);
         Allure.step(message, status);
+        // the nested line is closed by now, so this raises the step that encloses it
+        StepTracker.raise(level);
     }
 }

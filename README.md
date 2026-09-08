@@ -147,6 +147,19 @@ SP0308_3.2.1.1_Login functionality          <- <suite name> of the TestNG xml
 The level is `INFO` by default, `PASS`/`FAIL` for verifications, and is raised to `WARN` or
 `ERROR` as soon as `Log.warn(...)` / `Log.error(...)` is called inside the step.
 
+A verification also writes its outcome as a line nested inside its own step, so the html tells the
+same story as the console:
+
+```
+15:06:49.559    PASS     Verify that Welcome message contains 'Demo User'
+15:06:49.560    PASS         PASSED - the text of Welcome message
+15:06:49.575    FAIL     Verify that Selected country shows 'Selected country: sg'
+15:06:49.576    FAIL         FAILED - the text of Selected country
+```
+
+`Log.step(level, message)` publishes any message that way; `Log.info(...)` and friends stay on the
+console.
+
 ### 3.2 Screenshots
 
 ```
@@ -495,6 +508,11 @@ is what the framework does instead, and why:
    then rethrows a `FrameworkException`.
 6. **Step name separator.** The three columns of a step name are separated by non breaking spaces:
    an html renderer collapses ordinary consecutive spaces, which would break the alignment.
+7. **`@Step` templates in the assertions address their arguments by position** (`{0.name}`,
+   `{1}`) rather than by name. Allure fills the name keys from the parameter names the AspectJ
+   weaver reads out of the class file; some JDK and compiler combinations do not publish them and
+   the report then shows a raw `{locator.name}`. The index keys are built from the argument values
+   themselves, so they always resolve.
 
 ---
 

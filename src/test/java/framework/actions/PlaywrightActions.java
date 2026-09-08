@@ -13,6 +13,7 @@ import framework.core.FrameworkException;
 import framework.core.PageManager;
 import framework.locator.NameLocator;
 import framework.logging.Log;
+import framework.logging.LogLevel;
 import framework.report.DownloadManager;
 import framework.report.ScreenshotManager;
 import io.qameta.allure.Allure;
@@ -740,10 +741,26 @@ public final class PlaywrightActions {
                     ? (FrameworkException) error
                     : new FrameworkException(description + " -> FAILED: " + error.getMessage(), error);
             Log.fail("{} -> FAILED: {}", description, error.getMessage());
+            Log.step(LogLevel.FAIL, "FAILED - " + firstLine(error.getMessage()));
             Allure.addAttachment("Error - " + description, "text/plain", stackTraceOf(error), ".txt");
             ScreenshotManager.captureFailure(failure);
             throw failure;
         }
+    }
+
+    /**
+     * Shortens an error message to something that reads well as a single line in the report; the
+     * whole message and the stack trace stay in the attachment.
+     *
+     * @param message the error message, may be {@code null}
+     * @return its first line, truncated
+     */
+    private static String firstLine(final String message) {
+        if (message == null || message.isEmpty()) {
+            return "no details";
+        }
+        final String line = message.split("\\R", 2)[0].trim();
+        return line.length() <= 160 ? line : line.substring(0, 157) + "...";
     }
 
     private static String stackTraceOf(final Throwable error) {
