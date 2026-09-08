@@ -47,7 +47,7 @@ public final class BrowserManager {
 
         final Playwright playwright = Playwright.create();
         final BrowserType browserType = browserTypeOf(playwright, browserName);
-        final Browser browser = browserType.launch(launchOptions(browserName, headless));
+        final Browser browser = launch(browserType, browserName, headless);
 
         final Browser.NewContextOptions contextOptions = new Browser.NewContextOptions()
                 .setViewportSize(FrameworkConfig.viewportWidth(), FrameworkConfig.viewportHeight())
@@ -77,6 +77,32 @@ public final class BrowserManager {
                 headless, alias);
         AllureEnvironmentWriter.recordBrowser(session);
         return session;
+    }
+
+    /**
+     * Launches the browser, turning "this browser is not installed" into an error that says what to
+     * do about it.
+     *
+     * @param browserType the Playwright engine to start
+     * @param browserName the browser asked for
+     * @param headless    whether the window must stay hidden
+     * @return the running browser
+     */
+    private static Browser launch(final BrowserType browserType, final String browserName,
+                                  final boolean headless) {
+        try {
+            return browserType.launch(launchOptions(browserName, headless));
+        } catch (RuntimeException e) {
+            final String channel = channelFor(browserName);
+            if (channel == null || FrameworkConfig.browserExecutablePath() != null) {
+                throw e;
+            }
+            throw new FrameworkException("Unable to start '" + browserName + "'. It runs the "
+                    + channel + " browser installed on this machine, which was not found. Install "
+                    + "it, or point browser.executable.path at its binary, or use -Dbrowser=chromium "
+                    + "to run the Chromium build bundled with Playwright. Original error: "
+                    + e.getMessage(), e);
+        }
     }
 
     /**
@@ -116,13 +142,15 @@ public final class BrowserManager {
                 .setHeadless(headless)
                 .setDownloadsPath(downloadsPath());
 
-        final String channel = channelFor(browserName);
-        if (channel != null) {
-            options.setChannel(channel);
-        }
+        // An explicit binary wins over the channel: Playwright refuses to be given both.
         final String executable = FrameworkConfig.browserExecutablePath();
         if (executable != null) {
             options.setExecutablePath(Path.of(executable));
+        } else {
+            final String channel = channelFor(browserName);
+            if (channel != null) {
+                options.setChannel(channel);
+            }
         }
         final int slowMo = FrameworkConfig.getInt("slowmo", 0);
         if (slowMo > 0) {
@@ -162,13 +190,32 @@ public final class BrowserManager {
         }
     }
 
+    /**
+     * Chooses the Playwright channel, i.e. the real browser installed on the machine, for a browser
+     * name.
+     *
+     * <p>{@code chrome} drives Google Chrome and {@code edge} drives Microsoft Edge; only
+     * {@code chromium} runs the Chromium build bundled with Playwright. {@code browser.channel} in
+     * the environment file overrides the mapping, for a beta or dev channel for instance.</p>
+     *
+     * @param browserName the browser asked for
+     * @return the channel to launch, or {@code null} to use the build bundled with Playwright
+     */
     private static String channelFor(final String browserName) {
         final String configured = FrameworkConfig.browserChannel();
         if (configured != null) {
             return configured;
         }
-        // Edge has no bundled build, it always runs through the installed channel
-        return "edge".equals(browserName) || "msedge".equals(browserName) ? "msedge" : null;
+        switch (browserName) {
+            case "chrome":
+                return "chrome";
+            case "edge":
+            case "msedge":
+                return "msedge";
+            default:
+                // chromium, firefox and webkit run the build Playwright ships with
+                return null;
+        }
     }
 
     private static boolean isChromium(final String browserName) {

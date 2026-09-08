@@ -5,7 +5,7 @@
      The report is then published as reports/smoke.html -->
 <suite name="SP0308_3.2.1.1_Demo smoke" verbose="1">
 
-    <parameter name="browser" value="chrome"/>
+    <parameter name="browser" value="chromium"/>
     <parameter name="isHeadless" value="true"/>
 
     <test name="3.2.1.1_TC001_Login with valid credentials">

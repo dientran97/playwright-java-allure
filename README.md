@@ -21,7 +21,8 @@ A keyword driven UI automation framework built on **Playwright for Java**, **Tes
 |------|---------|
 | JDK | 11 or newer (the project compiles with `--release 11`) |
 | Maven | 3.8 or newer |
-| Playwright browsers | installed once with `mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install"` or by simply running the suite the first time |
+| Playwright browsers | installed once with `mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install"`, or by simply running the suite the first time |
+| Google Chrome / Microsoft Edge | only for `-browser=chrome` / `-browser=edge`, which drive the real browser (see [2.3](#23-everything-you-can-pass)) |
 
 ---
 
@@ -60,8 +61,24 @@ mvn clean verify -PTEST -Duser=User1 -DsuiteXmlFolder=Login \
 | `-user=User1` | `-Duser=User1` | selects `users/<user>.properties` | `User1` |
 | `-suiteXmlFolder=Login` | `-DsuiteXmlFolder=Login` | folder under `src/test/resources/suites` | `Login` |
 | `-suiteXmlFile=testsuite.xml` | `-DsuiteXmlFile=testsuite.xml` | xml inside that folder, also the report name | `testsuite.xml` |
-| `-browser=chrome` | `-Dbrowser=chrome` | `chrome`, `chromium`, `edge`, `firefox`, `webkit` | from the xml, then the env file |
+| `-browser=chrome` | `-Dbrowser=chrome` | which browser to drive, see the table below | from the xml, then the env file |
 | `--headless` / `--headed` | `-Dheadless=true` / `false` | window visibility | from the xml, then the env file |
+
+**Which browser each name starts.**
+
+| `-browser=` | What is launched | Needs to be installed |
+|---|---|---|
+| `chrome` | **Google Chrome** | yes |
+| `edge` | **Microsoft Edge** | yes |
+| `chromium` | the Chromium build bundled with Playwright | no |
+| `firefox` | the Firefox build bundled with Playwright | no |
+| `webkit` | the WebKit build bundled with Playwright | no |
+
+`chrome` and `edge` deliberately drive the real browser the users have, not a Chromium
+look-alike. When one of them is missing the framework says so and names the three ways out:
+install it, point `browser.executable.path` at its binary, or fall back on `-Dbrowser=chromium`.
+`browser.channel` overrides the mapping when another channel is wanted (`chrome-beta`,
+`msedge-dev`, ...), and `browser.executable.path` wins over both.
 
 **Where a value comes from.** The first non blank one wins:
 
@@ -80,6 +97,9 @@ chain (browser, screenshots, downloads, tab switching, report) can be checked of
 ```bash
 ./run.sh clean verify -PLOCAL -suiteXmlFolder=Demo -suiteXmlFile=testsuite.xml --headless
 ```
+
+It runs on `chromium`, the build Playwright ships with, so it needs neither network access nor an
+installed browser.
 
 The `Login` suite is the counterpart: it runs against the url of the active environment file
 (a public demo application out of the box) and therefore needs outbound network access. Point
@@ -228,7 +248,8 @@ headless=false
 timeout=30
 default.user=User1
 
-browser.channel=          # empty = the Chromium bundled with Playwright; 'chrome' or 'msedge' = installed browser
+browser.channel=          # empty = the mapping above; set it for another channel, i.e. chrome-beta
+browser.executable.path=  # an explicit binary, wins over browser.channel
 viewport.width=1920
 viewport.height=1080
 ignore.https.errors=true
@@ -482,6 +503,10 @@ is what the framework does instead, and why:
 # one class only, no xml (same thing the IDE does)
 mvn clean verify -PLOCAL -Dit.test=TC001_login_with_valid_credentials -Dheadless=true
 
-# install the Playwright browsers explicitly
+# install the browsers Playwright bundles (chromium, firefox, webkit)
 mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install"
+
+# install the real Google Chrome / Microsoft Edge, for -browser=chrome / -browser=edge
+mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install chrome"
+mvn exec:java -e -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install msedge"
 ```

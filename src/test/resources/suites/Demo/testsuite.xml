@@ -12,7 +12,7 @@
 -->
 <suite name="SP0308_3.2.1.1_Demo application end to end" verbose="1">
 
-    <parameter name="browser" value="chrome"/>
+    <parameter name="browser" value="chromium"/>
     <parameter name="isHeadless" value="true"/>
 
     <!-- <test name> follows <URS>_<testcase ID>_<short description> and is the name of the
