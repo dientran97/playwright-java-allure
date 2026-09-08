@@ -17,7 +17,12 @@
         <playwright.version>1.56.0</playwright.version>
         <testng.version>7.10.2</testng.version>
         <allure.version>2.29.0</allure.version>
-        <aspectj.version>1.9.22.1</aspectj.version>
+        <!-- The Allure @Step aspect is woven at load time, so the weaver has to understand the
+             class files of the JDK the tests run on. Each release raises that ceiling:
+               1.9.22.1 -> Java 22   1.9.23 -> Java 24   1.9.24 -> Java 25   1.9.25.1 -> Java 26
+             A newer JDK fails at JVM start with "Unsupported class file major version <NN>"
+             (NN - 44 = the Java version); bump this property, or pass -Daspectj.version=... -->
+        <aspectj.version>1.9.25.1</aspectj.version>
         <slf4j.version>2.0.16</slf4j.version>
 
         <!-- ==== Plugin versions ==== -->
