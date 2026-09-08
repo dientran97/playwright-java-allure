@@ -1,6 +1,7 @@
 package framework.assertions;
 
 import framework.logging.Log;
+import framework.logging.LogLevel;
 import framework.report.ScreenshotManager;
 import io.qameta.allure.Allure;
 
@@ -11,9 +12,9 @@ import java.util.function.Supplier;
  * Shared engine behind {@link CustomAssertions} (which throws immediately) and
  * {@link SoftAssertions} (which collects the failures until {@code assertAll()}).
  *
- * <p>Whatever the flavour, a failed verification always produces the same evidence: a
- * {@code FAIL} line in the log, an "Expected / Actual" attachment and the automatic
- * "Screenshot at the fail step" picture when a browser is still open.</p>
+ * <p>Whatever the flavour, a verification writes its outcome inside its own step in the report, so
+ * the html shows the same story as the console. A failure adds an "Expected / Actual" attachment
+ * and the automatic "Screenshot at the fail step" picture when a browser is still open.</p>
  */
 final class AssertionEngine {
 
@@ -49,13 +50,16 @@ final class AssertionEngine {
         }
 
         if (passed) {
-            Log.pass("VERIFY PASSED - {}", description);
+            Log.step(LogLevel.PASS, "PASSED - " + description);
             return true;
         }
 
         final String message = buildMessage(description, expected, actualValue, problem);
         final AssertionError error = new AssertionError(message);
+        // the full expected/actual goes to the console and to the attachment, the report step
+        // itself gets a single readable line
         Log.fail("VERIFY FAILED - {}", message);
+        Log.step(LogLevel.FAIL, "FAILED - " + description);
         Allure.addAttachment("Verification failed - " + description, "text/plain", message, ".txt");
         ScreenshotManager.captureFailure(error);
         onFailure.accept(error);

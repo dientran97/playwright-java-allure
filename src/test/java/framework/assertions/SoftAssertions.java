@@ -1,6 +1,7 @@
 package framework.assertions;
 
 import framework.logging.Log;
+import framework.logging.LogLevel;
 import framework.report.ScreenshotManager;
 import io.qameta.allure.Allure;
 import io.qameta.allure.Step;
@@ -97,15 +98,17 @@ public final class SoftAssertions extends AbstractAssertions {
      */
     @Step("Verify all the soft assertions")
     public void assertAll() {
+        final int failed = failures.size();
         final Optional<AssertionError> combined = combine();
         failures.clear();
         if (combined.isPresent()) {
             Log.fail("{}", combined.get().getMessage());
+            Log.step(LogLevel.FAIL, failed + " soft assertion(s) failed");
             Allure.addAttachment("Soft assertion failures", "text/plain",
                     combined.get().getMessage(), ".txt");
             throw combined.get();
         }
-        Log.pass("All the soft assertions passed");
+        Log.step(LogLevel.PASS, "All the soft assertions passed");
     }
 
     private Optional<AssertionError> combine() {

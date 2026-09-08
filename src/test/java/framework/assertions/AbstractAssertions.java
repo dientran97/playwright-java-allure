@@ -19,6 +19,12 @@ import java.util.function.Supplier;
  *
  * <p>Every check is an Allure step and returns a boolean, so a test can branch on the outcome of a
  * soft verification.</p>
+ *
+ * <p>The {@code @Step} templates address their arguments by position ({@code {0}}, {@code {1}}) and
+ * not by name. Allure fills the name keys from the parameter names the AspectJ weaver reads out of
+ * the class file, which some JDK and compiler combinations do not publish - the report then shows
+ * the raw {@code {locator.name}} instead of the element. The index keys are built from the argument
+ * values themselves, so they always resolve.</p>
  */
 public abstract class AbstractAssertions {
 
@@ -36,7 +42,7 @@ public abstract class AbstractAssertions {
      * @param description what the condition means, shown in the report
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {description}")
+    @Step("Verify that {1}")
     public boolean assertTrue(final boolean condition, final String description) {
         return AssertionEngine.verify(description, true, () -> condition, Boolean.TRUE::equals, this::onFailure);
     }
@@ -48,7 +54,7 @@ public abstract class AbstractAssertions {
      * @param description what the condition means, shown in the report
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that NOT {description}")
+    @Step("Verify that NOT {1}")
     public boolean assertFalse(final boolean condition, final String description) {
         return AssertionEngine.verify(description, false, () -> condition, Boolean.FALSE::equals, this::onFailure);
     }
@@ -61,7 +67,7 @@ public abstract class AbstractAssertions {
      * @param description what is being compared, shown in the report
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {description} is '{expected}'")
+    @Step("Verify that {2} is '{1}'")
     public boolean assertEquals(final Object actual, final Object expected, final String description) {
         return AssertionEngine.verify(description, expected, () -> actual,
                 value -> Objects.equals(value, expected), this::onFailure);
@@ -75,7 +81,7 @@ public abstract class AbstractAssertions {
      * @param description what is being compared, shown in the report
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {description} is not '{unexpected}'")
+    @Step("Verify that {2} is not '{1}'")
     public boolean assertNotEquals(final Object actual, final Object unexpected, final String description) {
         return AssertionEngine.verify(description, "anything but " + unexpected, () -> actual,
                 value -> !Objects.equals(value, unexpected), this::onFailure);
@@ -89,7 +95,7 @@ public abstract class AbstractAssertions {
      * @param description  what is being checked, shown in the report
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {description} contains '{expectedPart}'")
+    @Step("Verify that {2} contains '{1}'")
     public boolean assertContains(final String actual, final String expectedPart, final String description) {
         return AssertionEngine.verify(description, "a text containing '" + expectedPart + "'",
                 () -> actual, value -> value != null && value.contains(expectedPart), this::onFailure);
@@ -101,7 +107,7 @@ public abstract class AbstractAssertions {
      * @param locator the element that must be visible
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {locator.name} is displayed")
+    @Step("Verify that {0.name} is displayed")
     public boolean assertVisible(final NameLocator locator) {
         return AssertionEngine.verify(locator.getName() + " is displayed", "displayed",
                 () -> state(locator, WaitForSelectorState.VISIBLE) ? "displayed" : "not displayed",
@@ -115,7 +121,7 @@ public abstract class AbstractAssertions {
      * @param locator the element that must be hidden
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {locator.name} is not displayed")
+    @Step("Verify that {0.name} is not displayed")
     public boolean assertNotVisible(final NameLocator locator) {
         return AssertionEngine.verify(locator.getName() + " is not displayed", "not displayed",
                 () -> state(locator, WaitForSelectorState.HIDDEN) ? "not displayed" : "displayed",
@@ -128,7 +134,7 @@ public abstract class AbstractAssertions {
      * @param locator the element that must be enabled
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {locator.name} is enabled")
+    @Step("Verify that {0.name} is enabled")
     public boolean assertEnabled(final NameLocator locator) {
         return AssertionEngine.verify(locator.getName() + " is enabled", true,
                 () -> locator.resolve().isEnabled(), Boolean.TRUE::equals, this::onFailure);
@@ -140,7 +146,7 @@ public abstract class AbstractAssertions {
      * @param locator the checkbox or the radio button
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {locator.name} is checked")
+    @Step("Verify that {0.name} is checked")
     public boolean assertChecked(final NameLocator locator) {
         return AssertionEngine.verify(locator.getName() + " is checked", true,
                 () -> locator.resolve().isChecked(), Boolean.TRUE::equals, this::onFailure);
@@ -153,7 +159,7 @@ public abstract class AbstractAssertions {
      * @param expectedText the text the element must show
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {locator.name} shows '{expectedText}'")
+    @Step("Verify that {0.name} shows '{1}'")
     public boolean assertText(final NameLocator locator, final String expectedText) {
         return AssertionEngine.verify("the text of " + locator.getName(), expectedText,
                 () -> text(locator), value -> Objects.equals(value, expectedText), this::onFailure);
@@ -166,7 +172,7 @@ public abstract class AbstractAssertions {
      * @param expectedPart the fragment the element must show
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {locator.name} contains '{expectedPart}'")
+    @Step("Verify that {0.name} contains '{1}'")
     public boolean assertTextContains(final NameLocator locator, final String expectedPart) {
         return AssertionEngine.verify("the text of " + locator.getName(),
                 "a text containing '" + expectedPart + "'", () -> text(locator),
@@ -180,7 +186,7 @@ public abstract class AbstractAssertions {
      * @param expectedCount the number of elements the test case expects
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that {locator.name} matches {expectedCount} element(s)")
+    @Step("Verify that {0.name} matches {1} element(s)")
     public boolean assertCount(final NameLocator locator, final int expectedCount) {
         return AssertionEngine.verify("the number of " + locator.getName(), expectedCount,
                 () -> locator.resolve().count(), value -> value == expectedCount, this::onFailure);
@@ -192,7 +198,7 @@ public abstract class AbstractAssertions {
      * @param expectedTitle the title the page must have
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that the page title is '{expectedTitle}'")
+    @Step("Verify that the page title is '{0}'")
     public boolean assertPageTitle(final String expectedTitle) {
         return AssertionEngine.verify("the page title", expectedTitle,
                 () -> PageManager.page().title(), value -> Objects.equals(value, expectedTitle),
@@ -205,7 +211,7 @@ public abstract class AbstractAssertions {
      * @param expectedPart the fragment the url must contain
      * @return {@code true} when the verification passed
      */
-    @Step("Verify that the url contains '{expectedPart}'")
+    @Step("Verify that the url contains '{0}'")
     public boolean assertUrlContains(final String expectedPart) {
         return AssertionEngine.verify("the current url", "a url containing '" + expectedPart + "'",
                 () -> PageManager.page().url(), value -> value != null && value.contains(expectedPart),
@@ -218,7 +224,7 @@ public abstract class AbstractAssertions {
      * @param message why the test case is failing
      * @return always {@code false}
      */
-    @Step("Fail: {message}")
+    @Step("Fail: {0}")
     public boolean fail(final String message) {
         return AssertionEngine.verify(message, "no failure", () -> "failed", "no failure"::equals,
                 this::onFailure);
