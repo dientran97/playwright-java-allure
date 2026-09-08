@@ -491,7 +491,40 @@ is what the framework does instead, and why:
 
 ---
 
-## 9. Useful commands
+## 9. Troubleshooting
+
+**`Unsupported class file major version <NN>` / `The aspect weaver cannot determine any valid method
+to define auxiliary classes`** at JVM start.
+
+The Allure `@Step` aspect is woven at load time, so the AspectJ weaver has to understand the class
+files of the JDK the tests run on. `NN - 44` is that Java version (`67` is Java 23). The weaver
+pinned in the pom is older than the JDK; raise it:
+
+| `aspectj.version` | Understands up to |
+|---|---|
+| 1.9.22.1 | Java 22 |
+| 1.9.23 | Java 24 |
+| 1.9.24 | Java 25 |
+| 1.9.25.1 | Java 26 |
+
+Edit `<aspectj.version>` in the pom, or pass it for one run:
+
+```bash
+./run.sh clean verify -PTEST -Daspectj.version=1.9.25.1
+```
+
+Ignoring it is not an option: without weaving the report loses every step.
+
+**A test case fails with `No browser is open`.** The base class opens nothing on purpose, the test
+case has to call `PlaywrightActions.openBrowserAndNavigate(...)` first.
+
+**`Chromium distribution 'chrome' is not found`.** `-browser=chrome` drives the real Google Chrome
+(and `edge` the real Microsoft Edge). Install it, point `browser.executable.path` at its binary, or
+use `-browser=chromium` for the build Playwright ships with.
+
+---
+
+## 10. Useful commands
 
 ```bash
 # a suite, with everything on the command line
