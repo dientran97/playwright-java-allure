@@ -3,6 +3,8 @@ package pages.demo;
 import framework.actions.PlaywrightActions;
 import framework.config.UserConfig;
 import framework.locator.NameLocator;
+import io.qameta.allure.Param;
+import io.qameta.allure.model.Parameter;
 import io.qameta.allure.Step;
 import pages.BasePage;
 
@@ -33,7 +35,8 @@ public class DemoLoginPage extends BasePage {
      * @return the home page object, whether or not the login succeeded
      */
     @Step("Log in with the user name '{username}'")
-    public DemoHomePage login(final String username, final String password) {
+    public DemoHomePage login(final String username,
+                              @Param(mode = Parameter.Mode.MASKED) final String password) {
         PlaywrightActions.type(USERNAME_FIELD, username);
         PlaywrightActions.typeSecret(PASSWORD_FIELD, password);
         PlaywrightActions.click(LOGIN_BUTTON);

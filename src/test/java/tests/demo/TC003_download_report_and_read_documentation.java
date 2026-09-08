@@ -2,7 +2,6 @@ package tests.demo;
 
 import framework.actions.PlaywrightActions;
 import framework.annotations.Tag;
-import framework.annotations.TestCaseInfo;
 import framework.assertions.CustomAssertions;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
@@ -22,9 +21,6 @@ import java.nio.file.Path;
  * URS 3.2.1.3 and 3.2.1.4 - a logged in user downloads the sales report and reads the documentation
  * that opens in a second tab.
  */
-@TestCaseInfo(urs = "3.2.1.3_3.2.1.4", id = "TC003",
-        description = "Download the report and read the documentation",
-        suite = "SP0308_3.2.1.1_Demo application end to end")
 @Feature("My account")
 @Story("Reports")
 @Tag("regression")
@@ -38,7 +34,7 @@ public class TC003_download_report_and_read_documentation extends BaseTest {
             description = "The report is downloaded in the folder of the test case and the "
                     + "documentation opens in a second tab")
     @Description("Verifies the two features the framework has to support end to end: a download "
-            + "stored under downloads/<suite>/<testcase id>, and keywords that keep working after "
+            + "stored under downloads/[suite]/[testcase id], and keywords that keep working after "
             + "the framework has switched to another tab.")
     @Severity(SeverityLevel.NORMAL)
     public void e2eTest() {

@@ -1,11 +1,11 @@
 package framework.context;
 
-import framework.annotations.TestCaseInfo;
 import framework.config.FrameworkConfig;
 import framework.config.FrameworkPaths;
 import framework.logging.Log;
 import framework.utils.FileUtils;
 import org.testng.ITestContext;
+import org.testng.annotations.Test;
 
 import java.lang.reflect.Method;
 import java.nio.file.Path;
@@ -14,20 +14,37 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Everything the framework needs to know about the test case that is currently running:
  * its suite name, its URS, its test case id, where its screenshots and downloads go and how many
  * screenshots it has produced so far.
  *
- * <p>The values come from the TestNG xml when the run is driven by a suite file
- * ({@code <suite name="SP0308_3.2.1.1_Login">} / {@code <test name="3.2.1.1_TC001_...">}) and from
- * the {@link TestCaseInfo} annotation when a single class or a single method is started from the
- * IDE. That double source is what makes "Run" and "Debug" work straight from the editor.</p>
+ * <p>Nothing is declared twice. Two names carry it all:</p>
+ * <ul>
+ *     <li>{@code @Test(testName = "<URS>_<testcase ID>_<short description>")} on the test method
+ *         gives the URS, the test case id and the description. It is an annotation of the java
+ *         class, so it is there whether the run is driven by a TestNG xml or started from the IDE,
+ *         which is what makes "Run" and "Debug" work straight from the editor;</li>
+ *     <li>{@code <suite name="<projectID>_<URS>_<short description>">} of the TestNG xml gives the
+ *         test suite name. An IDE run has no xml, so the suite name falls back to the
+ *         {@code suite.name} setting and then to {@code <projectID>_<URS>_<description>}.</li>
+ * </ul>
  */
 public final class TestCaseContext {
 
     private static final ThreadLocal<TestCaseContext> CURRENT = new ThreadLocal<>();
+
+    /**
+     * Splits {@code <URS>_<testcase ID>_<short description>}. The URS itself may be made of
+     * several references joined by underscores ({@code 3.2.1.2_3.2.1.3_3.2.1.12}), so the test case
+     * id - the first token that is letters followed by digits, i.e. {@code TC001} - is what marks
+     * the boundary between the URS and the description.
+     */
+    private static final Pattern TEST_NAME_PATTERN =
+            Pattern.compile("^(?<urs>.+?)_(?<id>[A-Za-z]{1,10}\\d+)(?:_(?<description>.*))?$");
 
     private static final List<String> TESTNG_PLACEHOLDER_NAMES = Arrays.asList(
             "default suite", "default test", "default test name",
@@ -76,18 +93,20 @@ public final class TestCaseContext {
     public static TestCaseContext start(final ITestContext context, final Method method) {
         FrameworkConfig.captureXmlParameters(context);
 
-        final TestCaseInfo info = findAnnotation(method);
         final String xmlSuiteName = context == null || context.getSuite() == null
                 ? null : context.getSuite().getName();
-        final String xmlTestName = context == null ? null : context.getName();
+        final String testName = resolveTestName(method, context);
 
-        final String urs = resolveUrs(info, xmlTestName);
-        final String testCaseId = resolveTestCaseId(info, xmlTestName, method);
-        final String description = resolveDescription(info, xmlTestName, method);
-        final String testName = isUsable(xmlTestName)
-                ? xmlTestName.trim()
-                : join(urs, testCaseId, description);
-        final String suiteName = resolveSuiteName(info, xmlSuiteName, urs, description);
+        final Matcher parsed = TEST_NAME_PATTERN.matcher(testName);
+        final boolean matches = parsed.matches();
+        final String urs = matches ? parsed.group("urs") : "";
+        final String testCaseId = matches ? parsed.group("id") : fallbackTestCaseId(method);
+        final String description = matches ? nullToEmpty(parsed.group("description")) : testName;
+        if (!matches) {
+            Log.warn("'{}' does not follow <URS>_<testcase ID>_<short description>, "
+                    + "the test case id falls back to '{}'", testName, testCaseId);
+        }
+        final String suiteName = resolveSuiteName(xmlSuiteName, urs, description);
 
         final TestCaseContext testCase = new TestCaseContext(suiteName, testName, urs, testCaseId,
                 description, method.getDeclaringClass().getName(), method.getName());
@@ -219,67 +238,62 @@ public final class TestCaseContext {
      * @return the prefix shared by every screenshot of this test case, {@code <URS>_<testcase ID>}
      */
     public String screenshotPrefix() {
-        return FileUtils.sanitize(urs) + "_" + FileUtils.sanitize(testCaseId);
+        return FileUtils.sanitize(join(urs, testCaseId));
     }
 
-    private static TestCaseInfo findAnnotation(final Method method) {
-        final TestCaseInfo onMethod = method.getAnnotation(TestCaseInfo.class);
-        return onMethod != null ? onMethod : method.getDeclaringClass().getAnnotation(TestCaseInfo.class);
+    /**
+     * Finds the {@code <URS>_<testcase ID>_<short description>} name of the test case.
+     *
+     * @param method  the test method about to run
+     * @param context TestNG context of the running {@code <test>} tag, {@code null} when unknown
+     * @return {@code @Test(testName = ...)} of the method, then of the class, then the
+     *         {@code <test name>} of the xml, and finally the class name
+     */
+    private static String resolveTestName(final Method method, final ITestContext context) {
+        final Test onMethod = method.getAnnotation(Test.class);
+        if (onMethod != null && !onMethod.testName().trim().isEmpty()) {
+            return onMethod.testName().trim();
+        }
+        final Test onClass = method.getDeclaringClass().getAnnotation(Test.class);
+        if (onClass != null && !onClass.testName().trim().isEmpty()) {
+            return onClass.testName().trim();
+        }
+        final String xmlTestName = context == null ? null : context.getName();
+        if (isUsable(xmlTestName)) {
+            return xmlTestName.trim();
+        }
+        return method.getDeclaringClass().getSimpleName();
     }
 
-    private static String resolveUrs(final TestCaseInfo info, final String xmlTestName) {
-        if (info != null && !info.urs().trim().isEmpty()) {
-            return info.urs().trim();
+    /**
+     * Builds the test suite name.
+     *
+     * @param xmlSuiteName the {@code <suite name>} of the TestNG xml, {@code null} on an IDE run
+     * @param urs          the URS parsed from the test name
+     * @param description  the description parsed from the test name
+     * @return the xml suite name, then the {@code suite.name} setting, and finally
+     *         {@code <projectID>_<URS>_<description>}
+     */
+    private static String resolveSuiteName(final String xmlSuiteName, final String urs,
+                                           final String description) {
+        if (isUsable(xmlSuiteName)) {
+            return xmlSuiteName.trim();
         }
-        final String[] parts = split(xmlTestName);
-        return parts.length > 0 ? parts[0] : "URS";
+        final String configured = FrameworkConfig.get("suite.name", null);
+        if (configured != null && !configured.trim().isEmpty()) {
+            return configured.trim();
+        }
+        return join(FrameworkConfig.projectId(), urs, description);
     }
 
-    private static String resolveTestCaseId(final TestCaseInfo info, final String xmlTestName,
-                                            final Method method) {
-        if (info != null && !info.id().trim().isEmpty()) {
-            return info.id().trim();
-        }
-        final String[] parts = split(xmlTestName);
-        if (parts.length > 1) {
-            return parts[1];
-        }
-        // last resort: the class name follows the TC001_short_description convention
+    private static String fallbackTestCaseId(final Method method) {
         final String className = method.getDeclaringClass().getSimpleName();
         final int separator = className.indexOf('_');
         return separator > 0 ? className.substring(0, separator) : className;
     }
 
-    private static String resolveDescription(final TestCaseInfo info, final String xmlTestName,
-                                             final Method method) {
-        if (info != null && !info.description().trim().isEmpty()) {
-            return info.description().trim();
-        }
-        final String[] parts = split(xmlTestName);
-        if (parts.length > 2) {
-            return parts[2];
-        }
-        final String className = method.getDeclaringClass().getSimpleName();
-        final int separator = className.indexOf('_');
-        return separator > 0 ? className.substring(separator + 1).replace('_', ' ') : className;
-    }
-
-    private static String resolveSuiteName(final TestCaseInfo info, final String xmlSuiteName,
-                                           final String urs, final String description) {
-        if (isUsable(xmlSuiteName)) {
-            return xmlSuiteName.trim();
-        }
-        if (info != null && !info.suite().trim().isEmpty()) {
-            return info.suite().trim();
-        }
-        return join(FrameworkConfig.projectId(), urs, description);
-    }
-
-    private static String[] split(final String xmlTestName) {
-        if (!isUsable(xmlTestName)) {
-            return new String[0];
-        }
-        return xmlTestName.trim().split("_", 3);
+    private static String nullToEmpty(final String value) {
+        return value == null ? "" : value;
     }
 
     private static boolean isUsable(final String name) {

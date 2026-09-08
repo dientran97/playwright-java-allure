@@ -2,7 +2,6 @@ package tests.demo;
 
 import framework.actions.PlaywrightActions;
 import framework.annotations.Tag;
-import framework.annotations.TestCaseInfo;
 import framework.assertions.CustomAssertions;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
@@ -17,8 +16,6 @@ import tests.BaseTest;
 /**
  * URS 3.2.1.1 - a registered user can log in with valid credentials.
  */
-@TestCaseInfo(urs = "3.2.1.1", id = "TC001", description = "Login with valid credentials",
-        suite = "SP0308_3.2.1.1_Demo application end to end")
 @Feature("Authentication")
 @Story("Login")
 @Tag("smoke")

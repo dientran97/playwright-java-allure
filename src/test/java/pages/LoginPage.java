@@ -3,6 +3,8 @@ package pages;
 import framework.actions.PlaywrightActions;
 import framework.config.UserConfig;
 import framework.locator.NameLocator;
+import io.qameta.allure.Param;
+import io.qameta.allure.model.Parameter;
 import io.qameta.allure.Step;
 
 /**
@@ -57,7 +59,7 @@ public class LoginPage extends BasePage {
      * @return this page object, so calls can be chained
      */
     @Step("Enter the password")
-    public LoginPage enterPassword(final String password) {
+    public LoginPage enterPassword(@Param(mode = Parameter.Mode.MASKED) final String password) {
         PlaywrightActions.typeSecret(PASSWORD_FIELD, password);
         return this;
     }

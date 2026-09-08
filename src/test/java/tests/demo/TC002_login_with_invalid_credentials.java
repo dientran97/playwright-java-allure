@@ -2,7 +2,6 @@ package tests.demo;
 
 import framework.actions.PlaywrightActions;
 import framework.annotations.Tag;
-import framework.annotations.TestCaseInfo;
 import framework.assertions.CustomAssertions;
 import framework.config.UserConfig;
 import io.qameta.allure.Description;
@@ -18,8 +17,6 @@ import tests.BaseTest;
 /**
  * URS 3.2.1.2 - the application refuses unknown credentials and explains why.
  */
-@TestCaseInfo(urs = "3.2.1.2", id = "TC002", description = "Login with invalid credentials",
-        suite = "SP0308_3.2.1.1_Demo application end to end")
 @Feature("Authentication")
 @Story("Login")
 @Tag("negative")

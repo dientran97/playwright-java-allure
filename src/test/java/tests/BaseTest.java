@@ -30,8 +30,9 @@ import java.lang.reflect.Method;
  *     <li>closes every browser after each method.</li>
  * </ul>
  *
- * <p>Because everything is resolved from the {@code @TestCaseInfo} annotation when no TestNG xml is
- * involved, a test class can be started straight from the IDE with "Run" or "Debug".</p>
+ * <p>The identity of a test case is read from {@code @Test(testName = ...)}, an annotation of the
+ * java class, so a test class can be started straight from the IDE with "Run" or "Debug" without
+ * any TestNG xml.</p>
  */
 @Listeners(FrameworkListener.class)
 public abstract class BaseTest {

@@ -22,7 +22,8 @@ import java.util.Set;
  *
  * <p>Every image is named {@code <URS>_<testcase ID>_<description>_SS<index>.png} where the index
  * is a three digit counter that restarts at {@code 001} for each test case. The same bytes are
- * attached to the Allure report, so the picture is visible both on disk and inside the report.</p>
+ * attached to the Allure report under that very same name, so a picture seen in the report can be
+ * found on disk without opening anything.</p>
  */
 public final class ScreenshotManager {
 
@@ -43,8 +44,8 @@ public final class ScreenshotManager {
     /**
      * Takes a screenshot of the visible part of the active page.
      *
-     * @param description short text describing what the picture shows, used in the file name and
-     *                    as the attachment title in the report
+     * @param description short text describing what the picture shows; it becomes part of the
+     *                    file name, which is also the title of the attachment in the report
      * @return the path of the saved image, or an empty optional when no browser is open
      */
     public static Optional<Path> capture(final String description) {
@@ -76,12 +77,15 @@ public final class ScreenshotManager {
         try {
             final TestCaseContext testCase = TestCaseContext.current();
             final Path directory = FrameworkPaths.ensureDirectory(testCase.getScreenshotDirectory());
-            final Path file = directory.resolve(buildFileName(testCase, description));
+            final String fileName = buildFileName(testCase, description);
+            final Path file = directory.resolve(fileName);
             final Page page = PageManager.page();
             final byte[] image = page.screenshot(new Page.ScreenshotOptions()
                     .setFullPage(fullPage)
                     .setPath(file));
-            Allure.addAttachment(description, "image/png", new ByteArrayInputStream(image), ".png");
+            // the attachment carries the file name, so a picture of the report and the picture on
+            // disk can be matched without opening either of them
+            Allure.addAttachment(fileName, "image/png", new ByteArrayInputStream(image), ".png");
             Log.info("Screenshot saved: {}", file);
             return Optional.of(file);
         } catch (RuntimeException e) {
@@ -110,6 +114,20 @@ public final class ScreenshotManager {
     }
 
     /**
+     * Declares a failure as already photographed, so it does not produce a second picture.
+     *
+     * <p>Used for the error {@code SoftAssertions.assertAll()} builds: it aggregates failures that
+     * were each photographed when they happened, so the aggregate itself needs no picture.</p>
+     *
+     * @param cause the failure to register, ignored when {@code null}
+     */
+    public static void markAlreadyCaptured(final Throwable cause) {
+        if (cause != null) {
+            ALREADY_CAPTURED.get().add(cause);
+        }
+    }
+
+    /**
      * Forgets the failures already photographed. Called between two test cases.
      */
     public static void resetFailureTracking() {
@@ -118,7 +136,8 @@ public final class ScreenshotManager {
     }
 
     /**
-     * Builds the file name of the next screenshot of a test case.
+     * Builds the file name of the next screenshot of a test case. It names the file on disk and
+     * the attachment in the Allure report alike.
      *
      * @param testCase    the running test case
      * @param description description of the picture
