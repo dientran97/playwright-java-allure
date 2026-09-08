@@ -4,6 +4,7 @@ import framework.assertions.SoftAssertions;
 import framework.config.FrameworkConfig;
 import framework.logging.Log;
 import framework.report.AllureEnvironmentWriter;
+import framework.report.ReportNameWriter;
 import framework.report.ScreenshotManager;
 import org.testng.IInvokedMethod;
 import org.testng.IInvokedMethodListener;
@@ -32,6 +33,10 @@ public class FrameworkListener implements ITestListener, IInvokedMethodListener 
     public void onStart(final ITestContext context) {
         FrameworkConfig.captureXmlParameters(context);
         AllureEnvironmentWriter.recordRunInfo();
+        if (context.getSuite() != null) {
+            // the build names reports/<suite name>.html after it
+            ReportNameWriter.publish(context.getSuite().getName());
+        }
         Log.info("Starting '{}' of the suite '{}' [environment={}, user={}, browser={}, headless={}]",
                 context.getName(), context.getSuite().getName(), FrameworkConfig.environment(),
                 FrameworkConfig.userName(), FrameworkConfig.browser(), FrameworkConfig.headless());

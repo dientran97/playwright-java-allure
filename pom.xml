@@ -60,6 +60,7 @@
         <screenshots.dir>${project.basedir}/screenshots</screenshots.dir>
         <downloads.dir>${project.basedir}/downloads</downloads.dir>
         <allure.results.dir>${project.build.directory}/allure-results</allure.results.dir>
+        <report.name.file>${project.build.directory}/allure-report-name.properties</report.name.file>
     </properties>
 
     <dependencyManagement>
@@ -161,6 +162,7 @@
                         <screenshots.dir>${screenshots.dir}</screenshots.dir>
                         <downloads.dir>${downloads.dir}</downloads.dir>
                         <allure.results.directory>${allure.results.dir}</allure.results.directory>
+                        <report.name.file>${report.name.file}</report.name.file>
                     </systemPropertyVariables>
                 </configuration>
                 <executions>
@@ -215,6 +217,11 @@
                         </goals>
                         <configuration>
                             <target>
+                                <!-- The report is named after the <suite name> of the TestNG xml,
+                                     which the framework wrote here while the suite was running.
+                                     Ant properties are immutable, so the <basename> below only
+                                     applies when that file is absent. -->
+                                <property file="${report.name.file}"/>
                                 <basename property="report.name" file="${suiteXmlFile}" suffix=".xml"/>
                                 <mkdir dir="${reports.dir}"/>
                                 <copy file="${project.build.directory}/site/allure-maven-plugin/index.html"
