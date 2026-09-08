@@ -2,7 +2,6 @@ package tests.login;
 
 import framework.actions.PlaywrightActions;
 import framework.annotations.Tag;
-import framework.annotations.TestCaseInfo;
 import framework.assertions.CustomAssertions;
 import io.qameta.allure.Description;
 import io.qameta.allure.Feature;
@@ -16,8 +15,6 @@ import tests.BaseTest;
 /**
  * URS 3.2.1.1 - the login page of the application under test exposes the expected fields.
  */
-@TestCaseInfo(urs = "3.2.1.1", id = "TC001", description = "The login page is displayed",
-        suite = "SP0308_3.2.1.1_Login functionality")
 @Feature("Authentication")
 @Story("Login")
 @Tag("smoke")

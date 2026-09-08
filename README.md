@@ -178,7 +178,6 @@ run.sh / run.bat                         short command line -> maven
 src/test/java/
   framework/
     actions/PlaywrightActions.java       the keyword library (@Step + logging + evidence)
-    annotations/TestCaseInfo.java        URS, testcase id, description, fallback suite name
     annotations/Tag.java                 @Tag("smoke"), mapped to the Allure "tag" label
     assertions/CustomAssertions.java     hard verifications (stop the test case)
     assertions/SoftAssertions.java       soft verifications (collected, then reported)
@@ -187,7 +186,7 @@ src/test/java/
     config/UserConfig.java               users/<user>.properties
     config/ConfigLoader.java             properties loading + ${placeholder} resolution
     config/FrameworkPaths.java           reports/ screenshots/ downloads/ allure-results/
-    context/TestCaseContext.java         suite name, URS, testcase id, folders, screenshot counter
+    context/TestCaseContext.java         parses @Test(testName) and the xml suite name
     core/BrowserManager.java             launches browsers (http credentials, downloads path)
     core/PageManager.java                which page/tab/browser the next action runs on
     core/BrowserSession.java             one browser: playwright + browser + context + tabs
@@ -239,6 +238,10 @@ screenshot.on.failure=true
 screenshots.clean.before.testcase=true
 tracing.enabled=false     # true records a Playwright trace per test case in target/traces
 ```
+
+One optional key is not in the sample: `suite.name`. It is only ever used when no TestNG xml is
+involved (an IDE run) and it names the `screenshots/` and `downloads/` folder that the xml would
+otherwise name.
 
 Values may reference `${anotherKey}`, `${aSystemProperty}`, an environment variable, or the two
 built-ins `${projectDir}` and `${projectDirUri}`.
@@ -292,8 +295,6 @@ user().getUsername();  user().getPassword();  user().getName();  user().getEmail
 ### 6.1 The test class
 
 ```java
-@TestCaseInfo(urs = "3.2.1.1", id = "TC001", description = "Login with valid credentials",
-        suite = "SP0308_3.2.1.1_Login functionality")
 @Feature("Authentication")
 @Story("Login")
 @Tag("smoke")
@@ -319,10 +320,24 @@ public class TC001_login_with_valid_credentials extends BaseTest {
 }
 ```
 
-`@TestCaseInfo` repeats what the xml `<test name>` already says. It is what allows the class to be
-launched **straight from the IDE**, where TestNG invents a "Default suite" / "Default test": the
-framework then falls back on the annotation to build the same names and the same folders. When the
-run is driven by an xml, the xml wins.
+**Where the identity of a test case comes from.** Nothing is declared twice:
+
+| Value | Read from |
+|---|---|
+| URS, test case id, short description | `@Test(testName = "<URS>_<testcase ID>_<short description>")` |
+| test suite name | `<suite name="<projectID>_<URS>_<short description>">` of the TestNG xml |
+
+`testName` is an annotation of the java class, so the URS, the test case id, the screenshot names
+and the download folder are identical whether the suite is launched by Maven or the class is started
+**straight from the IDE**, where TestNG invents a "Default suite" with no name of its own.
+
+The test case id is what separates the two halves of `testName` - it is the first token made of
+letters followed by digits - so a URS made of several references keeps working:
+`3.2.1.2_3.2.1.3_3.2.1.12_TC007_Cancel an order` gives
+URS `3.2.1.2_3.2.1.3_3.2.1.12`, id `TC007`, description `Cancel an order`.
+
+Only the suite name has no java side, so an IDE run falls back to `-Dsuite.name=...` when it is
+given, and otherwise to `<projectID>_<URS>_<description>`.
 
 `BaseTest` **never opens a browser** — the test case does, which keeps that step in the report and
 lets each test case pick its url and its credentials. `BaseTest` only closes what is open, in an
@@ -415,8 +430,10 @@ collector when the test method ends and fails the test case if something was lef
 ## 7. Running from the IDE
 
 Press **Run** or **Debug** on a test class or on the `e2eTest` method — no TestNG xml is needed.
-The suite name, the URS, the test case id, the screenshot folder and the download folder are taken
-from `@TestCaseInfo`, and the browser settings from the environment file.
+The URS, the test case id and the description are taken from `@Test(testName = ...)`, and the
+browser settings from the environment file. The suite name is the only value the xml alone carries,
+so it falls back to `<projectID>_<URS>_<description>`; add `-Dsuite.name="SP0308_3.2.1.1_Login
+functionality"` to the VM options to file the evidence under the same folder as the Maven run.
 
 By default the IDE uses the `TEST` environment. To run against another one, add the VM option of
 your run configuration:
