@@ -10,7 +10,7 @@ A keyword driven UI automation framework built on **Playwright for Java**, **Tes
 * every keyword is an Allure step, rendered as
   `<start step time>    <log level>    <step description>`;
 * the evidence of a run is filed by suite and by test case:
-  `reports/<suiteXmlFile>.html`, `screenshots/<suite>/<testcase id>/`,
+  `reports/<suite name>.html`, `screenshots/<suite>/<testcase id>/`,
   `downloads/<suite>/<testcase id>/`.
 
 ---
@@ -60,7 +60,7 @@ mvn clean verify -PTEST -Duser=User1 -DsuiteXmlFolder=Login \
 | `-PTEST`, `-PUAT`, `-PDEV`, `-PLOCAL` | same | selects `environments/<env>.properties` | `TEST` |
 | `-user=User1` | `-Duser=User1` | selects `users/<user>.properties` | `User1` |
 | `-suiteXmlFolder=Login` | `-DsuiteXmlFolder=Login` | folder under `src/test/resources/suites` | `Login` |
-| `-suiteXmlFile=testsuite.xml` | `-DsuiteXmlFile=testsuite.xml` | xml inside that folder, also the report name | `testsuite.xml` |
+| `-suiteXmlFile=testsuite.xml` | `-DsuiteXmlFile=testsuite.xml` | xml inside that folder | `testsuite.xml` |
 | `-browser=chrome` | `-Dbrowser=chrome` | which browser to drive, see the table below | from the xml, then the env file |
 | `--headless` / `--headed` | `-Dheadless=true` / `false` | window visibility | from the xml, then the env file |
 
@@ -111,13 +111,19 @@ The `Login` suite is the counterpart: it runs against the url of the active envi
 
 ### 3.1 The report
 
-`reports/<suiteXmlFile>.html` — a **single, self contained** Allure html file, i.e.
-`reports/testsuite.html` for `-suiteXmlFile=testsuite.xml`. It is produced even when test cases
-fail: the suite runs in the `integration-test` phase, the report is built in
-`post-integration-test`, and only then does the `verify` phase fail the build.
+`reports/<suite name>.html` — a **single, self contained** Allure html file named after the
+`<suite name>` of the TestNG xml, i.e.
+`reports/SP0308_3.2.1.1_Login functionality.html`. It is produced even when test cases fail: the
+suite runs in the `integration-test` phase, the report is built in `post-integration-test`, and only
+then does the `verify` phase fail the build.
+
+Maven cannot read that name on its own - it lives inside the xml - so the framework writes it to
+`target/allure-report-name.properties` while the suite runs and the build reads it back. If the
+suite never started, the report keeps the name of the xml file instead.
 
 * the **Environment** widget of the overview page shows the browser, the **browser version** and
-  the **execution host**, plus the environment, the user and the url that were used;
+  the **execution host**, plus the environment, the operating system, the java version and the suite
+  that was run. The url and the test account are deliberately left out: a report gets shared around;
 * the **Suites** page is a two level tree:
 
 ```
@@ -217,6 +223,7 @@ src/test/java/
     report/DownloadManager.java          per test case download folder
     report/AllureStepListener.java       step names + two level suite tree
     report/AllureEnvironmentWriter.java  browser / version / host in the report
+    report/ReportNameWriter.java         publishes the suite name the report file is named after
     report/StepNameFormatter.java        "<time>  <level>  <description>"
   pages/                                 page objects (BasePage, LoginPage, demo/...)
   tests/BaseTest.java                    prepares the test case, closes the browser

@@ -2,7 +2,6 @@ package framework.report;
 
 import framework.config.FrameworkConfig;
 import framework.config.FrameworkPaths;
-import framework.config.UserConfig;
 import framework.core.BrowserSession;
 import framework.logging.Log;
 
@@ -20,7 +19,9 @@ import java.util.Map;
  * "Environment" widget on the overview page.
  *
  * <p>It carries what the report must show about the run: the browser that was used, its version and
- * the host the suite was executed on, plus the environment, the user and the entry point url.</p>
+ * the host the suite was executed on, plus the environment and the suite that produced it. It
+ * deliberately leaves out the url and the test account, which do not belong in a report that gets
+ * shared around.</p>
  */
 public final class AllureEnvironmentWriter {
 
@@ -35,9 +36,6 @@ public final class AllureEnvironmentWriter {
      */
     public static synchronized void recordRunInfo() {
         VALUES.put("Environment", FrameworkConfig.environment());
-        VALUES.put("Base.URL", safe(FrameworkConfig::baseUrl));
-        VALUES.put("Test.User", FrameworkConfig.userName());
-        VALUES.put("Test.User.Login", safe(() -> UserConfig.current().getUsername()));
         VALUES.put("Execution.Host", executionHost());
         VALUES.put("Execution.OS", System.getProperty("os.name") + " " + System.getProperty("os.version"));
         VALUES.put("Java.Version", System.getProperty("java.version"));
@@ -97,23 +95,4 @@ public final class AllureEnvironmentWriter {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\n", " ").replace(":", "\\:");
     }
 
-    private static String safe(final ThrowingSupplier supplier) {
-        try {
-            final String value = supplier.get();
-            return value == null ? "-" : value;
-        } catch (RuntimeException e) {
-            return "-";
-        }
-    }
-
-    /**
-     * Supplier that is allowed to blow up, used for the optional entries of the widget.
-     */
-    @FunctionalInterface
-    private interface ThrowingSupplier {
-        /**
-         * @return the value to publish
-         */
-        String get();
-    }
 }
